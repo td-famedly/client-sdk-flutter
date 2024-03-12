@@ -50,6 +50,7 @@ dependencies:
       url: https://github.com/td-famedly/dart-webrtc.git
       ref: td/web
   sdp_transform: ^0.3.2
+  web: ^0.5.0
 
 dev_dependencies:
   flutter_test:
