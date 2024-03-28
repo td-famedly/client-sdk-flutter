@@ -333,6 +333,7 @@ class FrameCryptor {
           'kind': kind,
           'state': 'missingKey',
           'error': 'Missing key for track $trackId',
+          'frameTrailer': frame.data.asUint8List(),
           'currentKeyIndex': currentKeyIndex,
           'secretKey': secretKey.toString()
         });
@@ -460,13 +461,25 @@ class FrameCryptor {
           kind == 'video' ? getUnencryptedBytes(frame, codec) : 1;
       var metaData = frame.getMetadata();
 
-      var frameTrailer = buffer.sublist(buffer.length - 2);
-      var ivLength = frameTrailer[0];
-      var keyIndex = frameTrailer[1];
-      var iv = buffer.sublist(buffer.length - ivLength - 2, buffer.length - 2);
+      Uint8List frameTrailer, iv;
+      int ivLength, keyIndex;
 
-      initialKeySet = keyHandler.getKeySet(keyIndex);
-      initialKeyIndex = keyIndex;
+      try {
+        frameTrailer = buffer.sublist(buffer.length - 2);
+        ivLength = frameTrailer[0];
+        keyIndex = frameTrailer[1];
+        iv = buffer.sublist(buffer.length - ivLength - 2, buffer.length - 2);
+
+        initialKeySet = keyHandler.getKeySet(keyIndex);
+        initialKeyIndex = keyIndex;
+      } catch (e, s) {
+        postMessage({
+          'message': 'messed up setting iv probably',
+          'error': e.toString(),
+          'stacktrace': s.toString(),
+        });
+        return;
+      }
 
       if (initialKeySet == null || !keyHandler.hasValidKey) {
         if (lastError != CryptorError.kMissingKey) {
