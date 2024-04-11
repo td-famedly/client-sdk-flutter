@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// ignore_for_file: constant_identifier_names
-
 import 'dart:async';
-import 'dart:html';
 import 'dart:js';
+import 'dart:js_interop';
 import 'dart:js_util' as jsutil;
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:dart_webrtc/src/rtc_transform_stream.dart';
+import 'package:web/web.dart' as web;
+
 import 'crypto.dart' as crypto;
 import 'e2ee.keyhandler.dart';
 import 'e2ee.logger.dart';
@@ -152,7 +152,7 @@ class FrameCryptor {
   bool _enabled = false;
   CryptorError lastError = CryptorError.kNew;
   int currentKeyIndex = 0;
-  final DedicatedWorkerGlobalScope worker;
+  final web.DedicatedWorkerGlobalScope worker;
   SifGuard sifGuard = SifGuard();
 
   void setParticipant(String identity, ParticipantKeyHandler keys) {
@@ -235,7 +235,7 @@ class FrameCryptor {
   }
 
   void postMessage(Object message) {
-    worker.postMessage(message);
+    worker.postMessage(message.jsify());
   }
 
   Future<void> setupTransform({
@@ -315,6 +315,9 @@ class FrameCryptor {
     if (!enabled ||
         // skip for encryption for empty dtx frames
         buffer.isEmpty) {
+      if (keyOptions.discardFrameWhenCryptorNotReady) {
+        return;
+      }
       controller.enqueue(frame);
       return;
     }
@@ -385,10 +388,7 @@ class FrameCryptor {
           'trackId': trackId,
           'kind': kind,
           'state': 'ok',
-          'error': 'encryption ok',
-          'frameTrailer': frameTrailer.buffer.asUint8List(),
-          'currentKeyIndex': currentKeyIndex,
-          'secretKey': secretKey.toString(),
+          'error': 'encryption ok'
         });
       }
 
@@ -425,6 +425,9 @@ class FrameCryptor {
         // skip for encryption for empty dtx frames
         buffer.isEmpty) {
       sifGuard.recordUserFrame();
+      if (keyOptions.discardFrameWhenCryptorNotReady) {
+        return;
+      }
       controller.enqueue(frame);
       return;
     }
@@ -491,10 +494,7 @@ class FrameCryptor {
             'trackId': trackId,
             'kind': kind,
             'state': 'missingKey',
-            'error': 'Missing key for track $trackId',
-            'frameTrailer': frameTrailer.buffer.asUint8List(),
-            'currentKeyIndex': keyIndex,
-            'secretKey': initialKeySet?.encryptionKey.toString()
+            'error': 'Missing key for track $trackId'
           });
         }
         controller.enqueue(frame);
@@ -517,7 +517,7 @@ class FrameCryptor {
           ));
 
           if (currentkeySet != initialKeySet) {
-            logger.warning(
+            logger.fine(
                 'ratchetKey: decryption ok, reset state to kKeyRatcheted');
             await keyHandler.setKeySetFromMaterial(
                 currentkeySet, initialKeyIndex);
@@ -541,10 +541,7 @@ class FrameCryptor {
               'trackId': trackId,
               'kind': kind,
               'state': 'keyRatcheted',
-              'error': 'Key ratcheted ok',
-              'frameTrailer': frameTrailer.buffer.asUint8List(),
-              'currentKeyIndex': currentKeyIndex,
-              'secretKey': currentkeySet.encryptionKey.toString()
+              'error': 'Key ratcheted ok'
             });
           }
         } catch (e) {
@@ -567,6 +564,7 @@ class FrameCryptor {
       logger.finer(
           'buffer: ${buffer.length}, decrypted: ${decrypted?.asUint8List().length ?? 0}');
       var finalBuffer = BytesBuilder();
+
       finalBuffer.add(Uint8List.fromList(buffer.sublist(0, headerLength)));
       finalBuffer.add(decrypted!.asUint8List());
       frame.data = crypto.jsArrayBufferFrom(finalBuffer.toBytes());
@@ -581,10 +579,7 @@ class FrameCryptor {
           'trackId': trackId,
           'kind': kind,
           'state': 'ok',
-          'error': 'decryption ok',
-          'frameTrailer': frameTrailer.buffer.asUint8List(),
-          'currentKeyIndex': currentKeyIndex,
-          'secretKey': currentkeySet.encryptionKey.toString()
+          'error': 'decryption ok'
         });
       }
 

@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2.1.2
+
+* fix: Expose keyRingSize/discardFrameWhenCryptorNotReady parameters for KeyProvider
+
+## 2.1.1
+
+* update to package:web (#484)
+* feat: add keyRingSize/discardFrameWhenCryptorNotReady to KeyProviderOptions. (#493)
+
+## 2.1.0
+
+* Fix: bug for sync state (#491)
+
 ## 2.0.3
 
 * Read capabilities from RtcRTPReceiver instead of from sender. (#488)
