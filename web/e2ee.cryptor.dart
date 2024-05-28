@@ -469,6 +469,12 @@ class FrameCryptor {
       initialKeySet = keyHandler.getKeySet(keyIndex);
       initialKeyIndex = keyIndex;
 
+      /// missingKey flow:
+      /// tries to decrypt once, fails, tries to ratchet once and decrypt again,
+      /// fails (does not save ratcheted key), bumps _decryptionFailureCount,
+      /// if higher than failuretolerance hasValidKey is set to false, on next
+      /// frame it fires a missingkey
+      /// to throw missingkeys faster lower your failureTolerance
       if (initialKeySet == null || !keyHandler.hasValidKey) {
         if (lastError != CryptorError.kMissingKey) {
           lastError = CryptorError.kMissingKey;
@@ -550,6 +556,9 @@ class FrameCryptor {
       }
 
       try {
+        /// gets frame -> tries to decrypt -> tries to ratchet (does this failureTolerance
+        /// times, then says missing key)
+        /// we only save the new key after ratcheting if we were able to decrypt something
         await decryptFrameInternal();
       } catch (e) {
         lastError = CryptorError.kInternalError;
@@ -560,6 +569,9 @@ class FrameCryptor {
         throw Exception(
             '[decodeFunction] decryption failed even after ratchting');
       }
+
+      // we can now be sure that decryption was a success
+      keyHandler.decryptionSuccess();
 
       logger.finer(
           'buffer: ${buffer.length}, decrypted: ${decrypted!.asUint8List().length}');
