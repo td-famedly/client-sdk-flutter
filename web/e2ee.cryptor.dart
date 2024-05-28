@@ -422,9 +422,8 @@ class FrameCryptor {
         // skip for encryption for empty dtx frames
         buffer.isEmpty) {
       sifGuard.recordUserFrame();
-      if (keyOptions.discardFrameWhenCryptorNotReady) {
-        return;
-      }
+      if (keyOptions.discardFrameWhenCryptorNotReady) return;
+      logger.fine('enqueing empty frame');
       controller.enqueue(frame);
       return;
     }
@@ -435,7 +434,7 @@ class FrameCryptor {
         var magicBytesBuffer = buffer.sublist(
             buffer.length - magicBytes.length - 1, buffer.length - 1);
         logger.finer(
-            'magicBytesBuffer $magicBytesBuffer, magicBytes $magicBytes, ');
+            'magicBytesBuffer $magicBytesBuffer, magicBytes $magicBytes');
         if (magicBytesBuffer.toString() == magicBytes.toString()) {
           sifGuard.recordSif();
           if (sifGuard.isSifAllowed()) {
@@ -445,6 +444,7 @@ class FrameCryptor {
             finalBuffer.add(Uint8List.fromList(
                 buffer.sublist(0, buffer.length - (magicBytes.length + 1))));
             frame.data = crypto.jsArrayBufferFrom(finalBuffer.toBytes());
+            logger.fine('enqueing silent frame');
             controller.enqueue(frame);
           } else {
             logger.finer('SIF limit reached, dropping frame');
