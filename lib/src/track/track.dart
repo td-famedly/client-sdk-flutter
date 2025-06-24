@@ -112,7 +112,7 @@ abstract class Track extends DisposableChangeNotifier
 
     logger.fine('$objectId.start()');
 
-    startMonitor();
+    // startMonitor();
 
     await onStarted();
 
