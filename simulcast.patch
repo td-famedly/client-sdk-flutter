@@ -1,0 +1,41 @@
+From 8134e92359a8dee8cedbf8e74b53a5a169027501 Mon Sep 17 00:00:00 2001
+From: Tobias Ollmann <tobias.ollmann@instahelp.me>
+Date: Tue, 8 Jul 2025 11:43:21 +0200
+Subject: [PATCH] fix(web, firefox): backup old values before overwriting them
+
+---
+ lib/src/track/local/video.dart | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/lib/src/track/local/video.dart b/lib/src/track/local/video.dart
+index 44d3afc94..09f30260d 100644
+--- a/lib/src/track/local/video.dart
++++ b/lib/src/track/local/video.dart
+@@ -62,6 +62,7 @@ class LocalVideoTrack extends LocalTrack with VideoTrack {
+   final Map<String, num> _bitrateFoLayers = {};
+ 
+   Map<String, SimulcastTrackInfo> simulcastCodecs = {};
++  Map<(String, int), rtc.RTCRtpEncoding> encodingBackups = {};
+ 
+   List<lk_rtc.SubscribedCodec> subscribedCodecs = [];
+ 
+@@ -452,11 +453,16 @@ extension LocalVideoTrackExt on LocalVideoTrack {
+           // have a workaround of lowering its bitrate and resolution to the min.
+           if (kIsWeb && lkBrowser() == BrowserType.firefox) {
+             if (subscribedQuality.enabled) {
++              final encodingBackup = encodingBackups[(sender.senderId, idx)]!;
+               encoding.scaleResolutionDownBy =
+-                  encodings[idx].scaleResolutionDownBy;
+-              encoding.maxBitrate = encodings[idx].maxBitrate;
+-              encoding.maxFramerate = encodings[idx].maxBitrate;
++                  encodingBackup.scaleResolutionDownBy;
++              encoding.maxBitrate = encodingBackup.maxBitrate;
++              encoding.maxFramerate = encodingBackup.maxFramerate;
+             } else {
++              encodingBackups[(sender.senderId, idx)] = rtc.RTCRtpEncoding(
++                  scaleResolutionDownBy: encoding.scaleResolutionDownBy,
++                  maxBitrate: encoding.maxBitrate,
++                  maxFramerate: encoding.maxFramerate);
+               encoding.scaleResolutionDownBy = 4;
+               encoding.maxBitrate = 10;
+               encoding.maxFramerate = 2;
