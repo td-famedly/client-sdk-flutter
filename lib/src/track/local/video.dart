@@ -58,6 +58,8 @@ class LocalVideoTrack extends LocalTrack with VideoTrack {
 
   num? _currentBitrate;
   get currentBitrate => _currentBitrate;
+  bool wasCpuConstrained = false;
+  bool optimizedForPerformance = false;
   Map<String, VideoSenderStats>? prevStats;
   final Map<String, num> _bitrateFoLayers = {};
 
@@ -78,6 +80,24 @@ class LocalVideoTrack extends LocalTrack with VideoTrack {
       logger.warning('Failed to get sender stats: $e');
       return false;
     }
+
+    // const isCpuConstrained = stats.some((s) => s.qualityLimitationReason === 'cpu');
+    // if (isCpuConstrained !== this.isCpuConstrained) {
+    //   this.isCpuConstrained = isCpuConstrained;
+    //   if (this.isCpuConstrained) {
+    //     this.emit(TrackEvent.CpuConstrained);
+    //   }
+    // }
+
+    final isCpuConstrained = stats.any(
+      (e) => e.qualityLimitationReason == 'cpu',
+    );
+
+    if (isCpuConstrained != wasCpuConstrained) {
+      wasCpuConstrained = isCpuConstrained;
+      events.emit(CpuConstrained());
+    }
+
     Map<String, VideoSenderStats> statsMap = {};
 
     for (var s in stats) {
@@ -108,7 +128,15 @@ class LocalVideoTrack extends LocalTrack with VideoTrack {
     }
 
     prevStats = statsMap;
+
     return true;
+  }
+
+  Future<void> prioritizePerformance() async {
+
+    
+    optimizedForPerformance = true;
+
   }
 
   Future<List<VideoSenderStats>> getSenderStats() async {

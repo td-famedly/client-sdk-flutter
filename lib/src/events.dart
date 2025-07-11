@@ -525,6 +525,11 @@ class VideoSenderStatsEvent with TrackEvent {
       'stats: ${stats})';
 }
 
+class CpuConstrained with TrackEvent {
+  @override
+  String toString() => '${runtimeType}';
+}
+
 class AudioReceiverStatsEvent with TrackEvent {
   final AudioReceiverStats stats;
   final num currentBitrate;
