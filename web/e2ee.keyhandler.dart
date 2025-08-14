@@ -191,12 +191,18 @@ class ParticipantKeyHandler {
             false, ['deriveBits', 'deriveKey'].jsify() as JSArray<JSString>)
         .toDart;
 
+    logger.info('got material for $key');
+
     var keySet = await deriveKeys(
       keyMaterial,
       keyOptions.ratchetSalt,
     );
+
+    logger.info('got keyset for $key');
     await setKeySetFromMaterial(keySet, keyIndex);
+    logger.info('set keyset for $key');
     resetKeyStatus();
+    logger.info('reset key status $key');
   }
 
   Future<void> setKeySetFromMaterial(KeySet keySet, int keyIndex) async {
@@ -214,6 +220,7 @@ class ParticipantKeyHandler {
     var algorithmOptions = getAlgoOptions(algorithmName.toDart, salt);
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#HKDF
     // https://developer.mozilla.org/en-US/docs/Web/API/HkdfParams
+    logger.info('deriveKeys actually deriving');
     var encryptionKey = await worker.crypto.subtle
         .deriveKey(
           algorithmOptions.jsify() as web.AlgorithmIdentifier,
@@ -223,6 +230,7 @@ class ParticipantKeyHandler {
           ['encrypt', 'decrypt'].jsify() as JSArray<JSString>,
         )
         .toDart;
+    logger.info('deriveKeys done');
 
     return KeySet(material, encryptionKey as web.CryptoKey);
   }

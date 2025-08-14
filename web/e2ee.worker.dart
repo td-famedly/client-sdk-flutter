@@ -250,7 +250,7 @@ void main() async {
           } else {
             var participantId = msg['participantId'] as String;
             logger.info(
-                'setKey for participant $participantId, keyIndex $keyIndex');
+                'setKey for participant $participantId, keyIndex $keyIndex, key $key');
             await keyProvider
                 .getParticipantKeyHandler(participantId)
                 .setKey(key, keyIndex: keyIndex);
