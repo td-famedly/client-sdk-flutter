@@ -55,7 +55,7 @@ class KeyProvider {
         keyOptions: keyProviderOptions,
       );
       if (sharedKey.isNotEmpty) {
-        keys.setKey(sharedKey);
+        keys.setKey(sharedKey, 'NEVER CALLED SETKEY');
       }
       //keys.on(KeyHandlerEvent.KeyRatcheted, emitRatchetedKeys);
       participantKeys[participantIdentity] = keys;
@@ -75,7 +75,7 @@ class KeyProvider {
   void setSharedKey(Uint8List key, {int keyIndex = 0}) {
     logger.info('setting shared key');
     sharedKey = key;
-    getSharedKeyHandler().setKey(key, keyIndex: keyIndex);
+    getSharedKeyHandler().setKey(key, keyIndex: keyIndex, 'NEVER CALLED');
   }
 
   void setSifTrailer(Uint8List sifTrailer) {
@@ -155,15 +155,22 @@ class ParticipantKeyHandler {
     }
   }
 
-  Future<Uint8List?> ratchetKey(int? keyIndex) async {
+  Future<Uint8List?> ratchetKey(int? keyIndex, String msgId) async {
+    logger.info('will ratchetKey at $keyIndex msg: $msgId');
     var currentMaterial = getKeySet(keyIndex)?.material;
     if (currentMaterial == null) {
       return null;
     }
+    logger.info('gotKeySet done msg: $msgId');
     var newKey = await ratchet(currentMaterial, keyOptions.ratchetSalt);
+    logger.info('ratchet done msg: $msgId');
     var newMaterial = await ratchetMaterial(currentMaterial, newKey.buffer);
-    var newKeySet = await deriveKeys(newMaterial, keyOptions.ratchetSalt);
+    logger.info('ratchet material done msg: $msgId');
+    var newKeySet =
+        await deriveKeys(newMaterial, keyOptions.ratchetSalt, msgId);
+    logger.info('ratchet derive done msg: $msgId');
     await setKeySetFromMaterial(newKeySet, keyIndex ?? currentKeyIndex);
+    logger.info('ratchet set done msg: $msgId');
     return newKey;
   }
 
@@ -185,24 +192,21 @@ class ParticipantKeyHandler {
     return cryptoKeyRing[keyIndex ?? currentKeyIndex];
   }
 
-  Future<void> setKey(Uint8List key, {int keyIndex = 0}) async {
+  Future<void> setKey(Uint8List key, String msgId, {int keyIndex = 0}) async {
     var keyMaterial = await worker.crypto.subtle
         .importKey('raw', key.toJS, {'name': 'PBKDF2'.toJS}.jsify() as JSAny,
             false, ['deriveBits', 'deriveKey'].jsify() as JSArray<JSString>)
         .toDart;
 
-    logger.info('got material for $key');
+    logger.info('got material for $key msg: $msgId');
 
-    var keySet = await deriveKeys(
-      keyMaterial,
-      keyOptions.ratchetSalt,
-    );
+    var keySet = await deriveKeys(keyMaterial, keyOptions.ratchetSalt, msgId);
 
-    logger.info('got keyset for $key');
+    logger.info('got keyset for $key msg: $msgId');
     await setKeySetFromMaterial(keySet, keyIndex);
-    logger.info('set keyset for $key');
+    logger.info('set keyset for $key msg: $msgId');
     resetKeyStatus();
-    logger.info('reset key status $key');
+    logger.info('reset key status $key msg: $msgId');
   }
 
   Future<void> setKeySetFromMaterial(KeySet keySet, int keyIndex) async {
@@ -215,12 +219,13 @@ class ParticipantKeyHandler {
 
   /// Derives a set of keys from the master key.
   /// See https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.1
-  Future<KeySet> deriveKeys(web.CryptoKey material, Uint8List salt) async {
+  Future<KeySet> deriveKeys(
+      web.CryptoKey material, Uint8List salt, String msgId) async {
     var algorithmName = material.algorithm.getProperty('name'.toJS) as JSString;
     var algorithmOptions = getAlgoOptions(algorithmName.toDart, salt);
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey#HKDF
     // https://developer.mozilla.org/en-US/docs/Web/API/HkdfParams
-    logger.info('deriveKeys actually deriving');
+    logger.info('deriveKeys actually deriving msg: $msgId');
     var encryptionKey = await worker.crypto.subtle
         .deriveKey(
           algorithmOptions.jsify() as web.AlgorithmIdentifier,
@@ -230,7 +235,7 @@ class ParticipantKeyHandler {
           ['encrypt', 'decrypt'].jsify() as JSArray<JSString>,
         )
         .toDart;
-    logger.info('deriveKeys done');
+    logger.info('deriveKeys done msg: $msgId');
 
     return KeySet(material, encryptionKey as web.CryptoKey);
   }

@@ -253,7 +253,7 @@ void main() async {
                 'setKey for participant $participantId, keyIndex $keyIndex, key $key');
             await keyProvider
                 .getParticipantKeyHandler(participantId)
-                .setKey(key, keyIndex: keyIndex);
+                .setKey(key, keyIndex: keyIndex, msgId!);
             logger.info('setKey done msg: $msgId');
           }
 
@@ -289,14 +289,15 @@ void main() async {
           Uint8List? newKey;
           if (keyProviderOptions.sharedKey) {
             logger.config('RatchetKey for SharedKey, keyIndex $keyIndex');
-            newKey =
-                await keyProvider.getSharedKeyHandler().ratchetKey(keyIndex);
+            newKey = await keyProvider
+                .getSharedKeyHandler()
+                .ratchetKey(keyIndex, msgId!);
           } else {
             logger.info(
                 'ratchetKey for participant $participantId, keyIndex $keyIndex');
             newKey = await keyProvider
                 .getParticipantKeyHandler(participantId)
-                .ratchetKey(keyIndex);
+                .ratchetKey(keyIndex, msgId!);
             logger.info('ratchetKey done msg: $msgId');
           }
 

@@ -628,7 +628,7 @@ class FrameCryptor {
         var newMaterial = await keyHandler.ratchetMaterial(
             currentkeySet.material, newKeyBuffer.buffer);
         currentkeySet =
-            await keyHandler.deriveKeys(newMaterial, keyOptions.ratchetSalt);
+            await keyHandler.deriveKeys(newMaterial, keyOptions.ratchetSalt, 'MANUAL THIS IS OK');
         ratchetCount++;
         await decryptFrameInternal();
       }
