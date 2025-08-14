@@ -243,14 +243,19 @@ class ParticipantKeyHandler {
   /// Ratchets a key. See
   /// https://tools.ietf.org/html/draft-omara-sframe-00#section-4.3.5.1
 
-  Future<Uint8List> ratchet(web.CryptoKey material, Uint8List salt) async {
+  Future<Uint8List> ratchet(
+      web.CryptoKey material, Uint8List salt, String msgId) async {
     var algorithmOptions = getAlgoOptions('PBKDF2', salt);
 
+    logger.info('actual ratchet about to start msg: $msgId');
     // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveBits
     var newKey = await worker.crypto.subtle
         .deriveBits(
             algorithmOptions.jsify() as web.AlgorithmIdentifier, material, 256)
         .toDart;
+
+    logger.info('actual ratchet done msg: $msgId');
+
     return newKey.toDart.asUint8List();
   }
 }

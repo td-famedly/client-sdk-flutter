@@ -623,12 +623,14 @@ class FrameCryptor {
           throw Exception('[ratchedKeyInternal] cannot ratchet anymore');
         }
 
-        var newKeyBuffer = await keyHandler.ratchet(
-            currentkeySet.material, keyOptions.ratchetSalt);
+        var newKeyBuffer = await keyHandler.ratchet(currentkeySet.material,
+            keyOptions.ratchetSalt, 'MANUAL RATCHET FOR ${srcFrame.buffer}');
         var newMaterial = await keyHandler.ratchetMaterial(
             currentkeySet.material, newKeyBuffer.buffer);
-        currentkeySet =
-            await keyHandler.deriveKeys(newMaterial, keyOptions.ratchetSalt, 'MANUAL THIS IS OK');
+        currentkeySet = await keyHandler.deriveKeys(
+            newMaterial,
+            keyOptions.ratchetSalt,
+            'MANUAL DERIVE KEYS FOR ${srcFrame.buffer}');
         ratchetCount++;
         await decryptFrameInternal();
       }
