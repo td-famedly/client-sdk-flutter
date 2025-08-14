@@ -512,8 +512,7 @@ class FrameCryptor {
             var finalBuffer = BytesBuilder();
             finalBuffer.add(Uint8List.fromList(srcFrame.buffer
                 .sublist(0, srcFrame.buffer.length - (magicBytes.length + 1))));
-            logger.fine(
-                'encodeFunction: enqueing silent frame');
+            logger.fine('encodeFunction: enqueing silent frame');
             enqueueFrame(frameObj, controller, finalBuffer);
             return;
           } else {
@@ -642,7 +641,7 @@ class FrameCryptor {
       } catch (e) {
         lastError = CryptorError.kInternalError;
         logger.finer('decodeFunction: kInternalError catch $e');
-        await ratchedKeyInternal();
+        if (keyOptions.ratchetWindowSize > 0) await ratchedKeyInternal();
       }
 
       if (decrypted == null) {
