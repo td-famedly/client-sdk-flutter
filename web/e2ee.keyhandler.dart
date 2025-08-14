@@ -162,7 +162,7 @@ class ParticipantKeyHandler {
       return null;
     }
     logger.info('gotKeySet done msg: $msgId');
-    var newKey = await ratchet(currentMaterial, keyOptions.ratchetSalt);
+    var newKey = await ratchet(currentMaterial, keyOptions.ratchetSalt, msgId);
     logger.info('ratchet done msg: $msgId');
     var newMaterial = await ratchetMaterial(currentMaterial, newKey.buffer);
     logger.info('ratchet material done msg: $msgId');
