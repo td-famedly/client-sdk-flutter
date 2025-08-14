@@ -228,6 +228,7 @@ void main() async {
       case 'setKey':
       case 'setSharedKey':
         {
+          logger.info('worker got setKey on msg: $msgId');
           var key = Uint8List.fromList(base64Decode(msg['key'] as String));
           var keyIndex = msg['keyIndex'] as int;
           var keyProviderId = msg['keyProviderId'] as String;
@@ -248,11 +249,12 @@ void main() async {
             keyProvider.setSharedKey(key, keyIndex: keyIndex);
           } else {
             var participantId = msg['participantId'] as String;
-            logger.config(
-                'Set key for participant $participantId, keyIndex $keyIndex');
+            logger.info(
+                'setKey for participant $participantId, keyIndex $keyIndex');
             await keyProvider
                 .getParticipantKeyHandler(participantId)
                 .setKey(key, keyIndex: keyIndex);
+            logger.info('setKey done msg: $msgId');
           }
 
           self.postMessage({
@@ -268,6 +270,7 @@ void main() async {
       case 'ratchetKey':
       case 'ratchetSharedKey':
         {
+          logger.info('worker got ratchetKey done msg: $msgId');
           var keyIndex = msg['keyIndex'];
           var participantId = msg['participantId'] as String;
           var keyProviderId = msg['keyProviderId'] as String;
@@ -289,11 +292,12 @@ void main() async {
             newKey =
                 await keyProvider.getSharedKeyHandler().ratchetKey(keyIndex);
           } else {
-            logger.config(
-                'RatchetKey for participant $participantId, keyIndex $keyIndex');
+            logger.info(
+                'ratchetKey for participant $participantId, keyIndex $keyIndex');
             newKey = await keyProvider
                 .getParticipantKeyHandler(participantId)
                 .ratchetKey(keyIndex);
+            logger.info('ratchetKey done msg: $msgId');
           }
 
           self.postMessage({
