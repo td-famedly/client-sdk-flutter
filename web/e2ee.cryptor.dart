@@ -145,6 +145,7 @@ class FrameCryptor {
   KeyOptions get keyOptions => keyHandler.keyOptions;
   late String kind;
   bool _enabled = false;
+  bool _transformIsActive = false;
   CryptorError lastError = CryptorError.kNew;
   int currentKeyIndex = 0;
   final web.DedicatedWorkerGlobalScope worker;
@@ -239,6 +240,7 @@ class FrameCryptor {
     required web.WritableStream writable,
     required String trackId,
     required String kind,
+    required bool isReuse,
     String? codec,
   }) async {
     logger.info('setupTransform $operation kind $kind');
@@ -246,6 +248,10 @@ class FrameCryptor {
     if (codec != null) {
       logger.info('setting codec on cryptor to $codec');
       this.codec = codec;
+    }
+    if (isReuse && _transformIsActive) {
+      logger.info('setupTransform: transform already active, skipping setup');
+      return;
     }
     var transformer = web.TransformStream({
       'transform':
@@ -268,6 +274,7 @@ class FrameCryptor {
         });
       }
     }
+    _transformIsActive = true;
     this.trackId = trackId;
   }
 
