@@ -472,6 +472,7 @@ class FrameCryptor {
     }
   }
 
+  Set<String> alreadyRatchetingKeys = {};
   void decodeFunction(
     JSObject frameObj,
     web.TransformStreamDefaultController controller,
@@ -631,6 +632,7 @@ class FrameCryptor {
             newMaterial,
             keyOptions.ratchetSalt,
             'MANUAL DERIVE KEYS FOR ${srcFrame.buffer}');
+
         ratchetCount++;
         await decryptFrameInternal();
       }
