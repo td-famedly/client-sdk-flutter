@@ -29,7 +29,7 @@ web.AudioContext _audioContext = web.AudioContext();
 Map<String, web.Element> _audioElements = {};
 
 Future<dynamic> startAudio(String id, rtc.MediaStreamTrack track) async {
-  logger.info('startAudio started for $id');
+  logger.warning('startAudio starting for $id');
   if (track is! MediaStreamTrackWeb) {
     logger.warning(
         'startAudio failed for track $id because track not a MediaStreamTrackWeb, is actually ${track.runtimeType}');
@@ -54,7 +54,7 @@ Future<dynamic> startAudio(String id, rtc.MediaStreamTrack track) async {
   final audioStream = web.MediaStream();
   audioStream.addTrack(track.jsTrack);
   audioElement.srcObject = audioStream;
-  logger.info('startAudio started for $id');
+  logger.warning('startAudio finishing for $id');
   return audioElement.play().toDart;
 }
 
