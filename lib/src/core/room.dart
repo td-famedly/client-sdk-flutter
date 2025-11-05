@@ -447,7 +447,8 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
         final bool audioEnabled = audio.enabled == true || audio.track != null;
         if (audioEnabled) {
           if (audio.track != null) {
-            await _localParticipant!.publishAudioTrack(audio.track as LocalAudioTrack,
+            await _localParticipant!.publishAudioTrack(
+                audio.track as LocalAudioTrack,
                 publishOptions: roomOptions.defaultAudioPublishOptions);
           } else {
             await _localParticipant!.setMicrophoneEnabled(true,
@@ -459,7 +460,8 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
         final bool videoEnabled = video.enabled == true || video.track != null;
         if (videoEnabled) {
           if (video.track != null) {
-            await _localParticipant!.publishVideoTrack(video.track as LocalVideoTrack,
+            await _localParticipant!.publishVideoTrack(
+                video.track as LocalVideoTrack,
                 publishOptions: roomOptions.defaultVideoPublishOptions);
           } else {
             await _localParticipant!.setCameraEnabled(true,
@@ -468,7 +470,8 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
         }
 
         final screen = options.screen;
-        final bool screenEnabled = screen.enabled == true || screen.track != null;
+        final bool screenEnabled =
+            screen.enabled == true || screen.track != null;
         if (screenEnabled) {
           if (screen.track != null) {
             await _localParticipant!.publishVideoTrack(
@@ -656,7 +659,12 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
   }
 
   RemoteParticipant? _getRemoteParticipantBySid(String sid) {
+    logger.info('[audioElementLogs] [_getRemoteParticipantBySid] sid: $sid');
     final identity = _sidToIdentity[sid];
+    logger.info(
+        '[audioElementLogs] [_getRemoteParticipantBySid] _sidToIdentity: $_sidToIdentity');
+    logger.info(
+        '[audioElementLogs] [_getRemoteParticipantBySid] identity: $identity');
     if (identity != null) {
       return remoteParticipants[identity];
     }
@@ -1340,7 +1348,8 @@ extension DataStreamRoomMethods on Room {
             ? streamHeader.textHeader.generated
             : false,
         operationType: streamHeader.textHeader.hasOperationType()
-            ? TextStreamOperationType.fromPBType(streamHeader.textHeader.operationType)
+            ? TextStreamOperationType.fromPBType(
+                streamHeader.textHeader.operationType)
             : null,
       );
 
