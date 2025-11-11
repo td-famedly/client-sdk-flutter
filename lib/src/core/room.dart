@@ -451,8 +451,7 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
         // Only enable microphone if preconnect buffer is not active
         if (audioEnabled && !preConnectAudioBuffer.isRecording) {
           if (audio.track != null) {
-            await _localParticipant!.publishAudioTrack(
-                audio.track as LocalAudioTrack,
+            await _localParticipant!.publishAudioTrack(audio.track as LocalAudioTrack,
                 publishOptions: roomOptions.defaultAudioPublishOptions);
           } else {
             await _localParticipant!
@@ -464,8 +463,7 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
         final bool videoEnabled = video.enabled == true || video.track != null;
         if (videoEnabled) {
           if (video.track != null) {
-            await _localParticipant!.publishVideoTrack(
-                video.track as LocalVideoTrack,
+            await _localParticipant!.publishVideoTrack(video.track as LocalVideoTrack,
                 publishOptions: roomOptions.defaultVideoPublishOptions);
           } else {
             await _localParticipant!
@@ -474,8 +472,7 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
         }
 
         final screen = options.screen;
-        final bool screenEnabled =
-            screen.enabled == true || screen.track != null;
+        final bool screenEnabled = screen.enabled == true || screen.track != null;
         if (screenEnabled) {
           if (screen.track != null) {
             await _localParticipant!.publishVideoTrack(screen.track as LocalVideoTrack,
@@ -591,22 +588,35 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
         trackSid = streamId;
       }
 
-      final participant = _getRemoteParticipantBySid(participantSid);
+      logger.warning(
+          '[audioElementLogs] starting _getRemoteParticipantBySid for $participantSid for $trackSid or $streamId');
+
+      RemoteParticipant? rp = _getRemoteParticipantBySid(participantSid);
+
+      if (rp == null) {
+        for (var i = 0; i < 5; i++) {
+          if (rp != null) break;
+          logger.warning('[audioElementLogs] _getRemoteParticipantBySid try: $i, sid: $participantSid');
+          await Future.delayed(Duration(seconds: i));
+          rp = _getRemoteParticipantBySid(participantSid);
+        }
+      }
+
       try {
         if (trackSid == null || trackSid.isEmpty) {
           throw TrackSubscriptionExceptionEvent(
-            participant: participant,
+            participant: rp,
             reason: TrackSubscribeFailReason.invalidServerResponse,
           );
         }
-        if (participant == null) {
+        if (rp == null) {
           throw TrackSubscriptionExceptionEvent(
-            participant: participant,
+            participant: rp,
             sid: trackSid,
             reason: TrackSubscribeFailReason.noParticipantFound,
           );
         }
-        await participant.addSubscribedMediaTrack(
+        await rp.addSubscribedMediaTrack(
           event.track,
           event.stream,
           trackSid,
@@ -655,19 +665,20 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
   RemoteParticipant? _getRemoteParticipantBySid(String sid) {
     logger.warning('[audioElementLogs] [_getRemoteParticipantBySid] sid: $sid');
     final identity = _sidToIdentity[sid];
-    logger.warning(
-        '[audioElementLogs] [_getRemoteParticipantBySid] _sidToIdentity: $_sidToIdentity');
-    logger.warning(
-        '[audioElementLogs] [_getRemoteParticipantBySid] identity: $identity');
+    logger.warning('[audioElementLogs] [_getRemoteParticipantBySid] _sidToIdentity: $_sidToIdentity');
+    logger.warning('[audioElementLogs] [_getRemoteParticipantBySid] identity: $identity');
     if (identity != null) {
       return remoteParticipants[identity];
+    } else {
+      return null;
     }
-    return null;
   }
 
   Future<ParticipantCreationResult> _getOrCreateRemoteParticipant(
       String identity, lk_models.ParticipantInfo? info) async {
     RemoteParticipant? participant = _remoteParticipants[identity];
+    logger.warning('[audioElementLogs] _getOrCreateRemoteParticipant about to update _sidIdentity');
+
     if (participant != null) {
       // Return existing participant with no new publications; caller handles updates.
       return ParticipantCreationResult(
@@ -675,6 +686,8 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
         newPublications: const [],
       );
     }
+
+    logger.warning('[audioElementLogs] _getOrCreateRemoteParticipant 1 about to update _sidIdentity');
 
     ParticipantCreationResult result;
     if (info == null) {
@@ -697,7 +710,11 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
     }
 
     _remoteParticipants[result.participant.identity] = result.participant;
+    logger.warning(
+        '[audioElementLogs] _getOrCreateRemoteParticipant 2 about to update _sidIdentity with ${result.participant.sid}');
+
     _sidToIdentity[result.participant.sid] = result.participant.identity;
+
     return result;
   }
 
@@ -705,6 +722,8 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
     // trigger change notifier only if list of participants membership is changed
     var hasChanged = false;
     for (final info in updates) {
+      logger.warning('[audioElementLogs] _onParticipantUpdateEvent about to update _sidIdentity with ${info.sid}');
+
       // The local participant is not ready yet, waiting for the
       // `RoomConnectedEvent` to create the local participant.
       if (_localParticipant == null) {
@@ -741,10 +760,14 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
             [result.participant.events, events].emit(event);
           }
         }
+        logger.warning('[audioElementLogs] _onParticipantUpdateEvent 1 about to update _sidIdentity with ${info.sid}');
+
         _sidToIdentity[info.sid] = info.identity;
       } else {
         final wasUpdated = await result.participant.updateFromInfo(info);
         if (wasUpdated) {
+          logger
+              .warning('[audioElementLogs] _onParticipantUpdateEvent 2 about to update _sidIdentity with ${info.sid}');
           _sidToIdentity[info.sid] = info.identity;
         }
       }
@@ -755,7 +778,7 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
     }
   }
 
-  void _onSignalSpeakersChangedEvent(List<lk_models.SpeakerInfo> speakers) {
+  Future<void> _onSignalSpeakersChangedEvent(List<lk_models.SpeakerInfo> speakers) async {
     final lastSpeakers = {
       for (final p in _activeSpeakers) p.sid: p,
     };
@@ -813,7 +836,7 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
     emitWhenConnected(ActiveSpeakersChangedEvent(speakers: activeSpeakers));
   }
 
-  void _onSignalConnectionQualityUpdateEvent(List<lk_rtc.ConnectionQualityInfo> updates) {
+  Future<void> _onSignalConnectionQualityUpdateEvent(List<lk_rtc.ConnectionQualityInfo> updates) async {
     for (final entry in updates) {
       Participant? participant;
       if (entry.participantSid == localParticipant?.sid) {
@@ -831,6 +854,8 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
 
   void _onSignalStreamStateUpdateEvent(List<lk_rtc.StreamStateInfo> updates) async {
     for (final update in updates) {
+      logger.warning(
+          '[audioElementLogs] _onSignalStreamStateUpdateEvent about to update _sidIdentity with ${update.participantSid}');
       final identity = _sidToIdentity[update.participantSid];
       if (identity == null) {
         logger.warning('participant not found for sid ${update.participantSid}');
@@ -1342,8 +1367,7 @@ extension DataStreamRoomMethods on Room {
         version: streamHeader.textHeader.hasVersion() ? streamHeader.textHeader.version : null,
         generated: streamHeader.textHeader.hasGenerated() ? streamHeader.textHeader.generated : false,
         operationType: streamHeader.textHeader.hasOperationType()
-            ? TextStreamOperationType.fromPBType(
-                streamHeader.textHeader.operationType)
+            ? TextStreamOperationType.fromPBType(streamHeader.textHeader.operationType)
             : null,
         encryptionType: encryptionType,
         sendingParticipantIdentity: participantIdentity,
