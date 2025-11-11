@@ -653,11 +653,11 @@ class Room extends DisposableChangeNotifier with EventsEmittable<RoomEvent> {
   }
 
   RemoteParticipant? _getRemoteParticipantBySid(String sid) {
-    logger.info('[audioElementLogs] [_getRemoteParticipantBySid] sid: $sid');
+    logger.warning('[audioElementLogs] [_getRemoteParticipantBySid] sid: $sid');
     final identity = _sidToIdentity[sid];
-    logger.info(
+    logger.warning(
         '[audioElementLogs] [_getRemoteParticipantBySid] _sidToIdentity: $_sidToIdentity');
-    logger.info(
+    logger.warning(
         '[audioElementLogs] [_getRemoteParticipantBySid] identity: $identity');
     if (identity != null) {
       return remoteParticipants[identity];
